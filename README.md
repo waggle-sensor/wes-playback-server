@@ -4,8 +4,18 @@ To use this create a data directory of the form:
 
 ```
 data/
-  bottom.mp4
-  top.mp4
+  bottom/
+    live.mp4
+    images/
+      image1.jpg
+      image2.jpg
+      ...
+  top/
+    live.mp4
+    images/
+      image1.jpg
+      image2.jpg
+      ...
 ```
 
 Now we can run the server with:
