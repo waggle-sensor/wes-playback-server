@@ -25,7 +25,7 @@ data/
 Now we can run the server with:
 
 ```sh
-docker run -ti -p 8090:8090 -v /path/to/data:/data:ro waggle/playerback-server
+docker run -ti -p 8090:8090 -v /path/to/data:/data:ro waggle/playback-server
 ```
 
 ## Resources
