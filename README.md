@@ -1,8 +1,12 @@
+# Playback Server
+
 This service allows us to mock out the full ffserver + ffmpeg stream with a simple HTTP server and static files.
+
+## Usage
 
 To use this create a data directory of the form:
 
-```
+```txt
 data/
   bottom/
     live.mp4
@@ -21,13 +25,22 @@ data/
 Now we can run the server with:
 
 ```sh
-docker run -ti -p 8090:8090 -v /path/to/data:/data:ro waggle/media-server
+docker run -ti -p 8090:8090 -v /path/to/data:/data:ro waggle/playerback-server
 ```
+
+## Resources
 
 Data will be available at:
 
 ```sh
-ffplay http://localhost:8090/bottom
-ffplay http://localhost:8090/top
-ffplay http://localhost:8090/live # alias for bottom
+# alias for ffserver bottom mp4 stream
+ffplay http://localhost:8090/live
+
+# serves mp4 video stream
+ffplay http://localhost:8090/bottom/live.mp4
+ffplay http://localhost:8090/top/live.mp4
+
+# serves sequence of images from data directory
+wget http://localhost:8090/bottom/image.jpg
+wget http://localhost:8090/top/image.jpg
 ```
