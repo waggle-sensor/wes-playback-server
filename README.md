@@ -25,6 +25,13 @@ data/
 Now we can run the server with:
 
 ```sh
+go build
+./playback-server -data /path/to/data
+```
+
+We've also packaged this as a Docker image which can be run with:
+
+```sh
 docker run -ti -p 8090:8090 -v /path/to/data:/data:ro waggle/playback-server
 ```
 
