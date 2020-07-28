@@ -50,4 +50,8 @@ ffplay http://localhost:8090/top/live.mp4
 # serves sequence of images from data directory
 wget http://localhost:8090/bottom/image.jpg
 wget http://localhost:8090/top/image.jpg
+
+# serves synthetic debug images
+wget http://localhost:8090/blank.jpg
+wget http://localhost:8090/noise.jpg
 ```
