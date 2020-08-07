@@ -32,7 +32,8 @@ func makeImageHandler(name string) http.HandlerFunc {
 	log.Printf("found %d images matching %s", len(files), match)
 
 	if err != nil || len(files) == 0 {
-		return http.NotFound
+		log.Printf("no images found - defaulting to blank image")
+		return blankHandler
 	}
 
 	makeTime := time.Now()
