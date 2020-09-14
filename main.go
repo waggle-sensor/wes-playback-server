@@ -1,13 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"image"
-	"image/color"
 	"image/jpeg"
 	"log"
-	"math/rand"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"os"
 	"path/filepath"
 	"time"
@@ -19,6 +20,11 @@ import (
 // Accept-Ranges: bytes
 // Content-Type: *video mimetype*
 func makeStreamHandler(name string) http.HandlerFunc {
+	if _, err := os.Stat(name); os.IsNotExist(err) {
+		log.Printf("No video \"%s\" - falling back to blank video.", name)
+		return blankMJPEGHandler
+	}
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, name)
 	}
@@ -29,12 +35,13 @@ func makeStreamHandler(name string) http.HandlerFunc {
 func makeImageHandler(name string) http.HandlerFunc {
 	match := filepath.Join(name, "*.jpg")
 	files, err := filepath.Glob(match)
-	log.Printf("found %d images matching %s", len(files), match)
 
 	if err != nil || len(files) == 0 {
-		log.Printf("no images found - defaulting to blank image")
-		return blankHandler
+		log.Printf("No images found in \"%s\" - falling back to blank image.", name)
+		return blankJPEGHandler
 	}
+
+	log.Printf("Found %d images in \"%s.\"", len(files), match)
 
 	makeTime := time.Now()
 
@@ -45,48 +52,51 @@ func makeImageHandler(name string) http.HandlerFunc {
 	}
 }
 
-// blankHandler will serve a black JPEG image
-func blankHandler(w http.ResponseWriter, r *http.Request) {
-	img := image.NewRGBA(image.Rect(0, 0, 640, 480))
-	w.Header().Add("Content-Type", "image/jpeg")
-	jpeg.Encode(w, img, nil)
+// makeJPEGImageBuffer encodes a blank JPEG image to a buffer
+func makeJPEGImageBuffer() *bytes.Buffer {
+	var buf bytes.Buffer
+	img := image.NewRGBA(image.Rect(0, 0, 800, 600))
+	jpeg.Encode(&buf, img, nil)
+	return &buf
 }
 
-// noiseHandler will serve a randomly generated noise image
-func noiseHandler(w http.ResponseWriter, r *http.Request) {
-	img := image.NewRGBA(image.Rect(0, 0, 640, 480))
+// blankImageBuffer is a cached blank JPEG image for both image and video endpoints.
+var blankImageBuffer = makeJPEGImageBuffer()
 
-	b := img.Bounds()
-
-	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	for y := b.Min.Y; y < b.Max.Y; y++ {
-		for x := b.Min.X; x < b.Max.X; x++ {
-			if rnd.Float32() < 0.5 {
-				img.Set(x, y, color.RGBA{255, 255, 255, 255})
-			} else {
-				img.Set(x, y, color.RGBA{0, 0, 0, 255})
-			}
-		}
-	}
-
+// blankJPEGHandler will serve a black JPEG image.
+func blankJPEGHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "image/jpeg")
-	jpeg.Encode(w, img, nil)
+	w.Write(blankImageBuffer.Bytes())
+}
+
+// blankMJPEGHandler will serve a black MJPEG video
+func blankMJPEGHandler(w http.ResponseWriter, r *http.Request) {
+	mimeWriter := multipart.NewWriter(w)
+	defer mimeWriter.Close()
+
+	w.Header().Add("Content-Type", "multipart/x-mixed-replace;boundary="+mimeWriter.Boundary())
+
+	partHeader := make(textproto.MIMEHeader)
+	partHeader.Add("Content-Type", "image/jpeg")
+
+	for {
+		pw, err := mimeWriter.CreatePart(partHeader)
+		if err != nil {
+			return
+		}
+		if _, err := pw.Write(blankImageBuffer.Bytes()); err != nil {
+			return
+		}
+		time.Sleep(33 * time.Millisecond)
+	}
 }
 
 func main() {
-	dataDir := flag.String("data", ".", "path to data directory")
+	dataDir := flag.String("data", ".", "Path to data directory.")
 	flag.Parse()
 
-	log.Printf("serving data from %s", *dataDir)
+	log.Printf("Serving data from %s.", *dataDir)
 	os.Chdir(*dataDir)
-
-	// setup synthetic interfaces
-	http.HandleFunc("/blank.jpg", blankHandler)
-	http.HandleFunc("/noise.jpg", noiseHandler)
-
-	// setup current ffserver interface
-	http.HandleFunc("/live", makeStreamHandler("bottom/live.mp4"))
 
 	// setup bottom camera interface
 	http.HandleFunc("/bottom/live.mp4", makeStreamHandler("bottom/live.mp4"))

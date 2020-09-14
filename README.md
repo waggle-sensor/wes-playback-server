@@ -22,6 +22,9 @@ data/
       ...
 ```
 
+Note: If video or images are not available for a resource, the playback server will serve
+a blank video or image.
+
 Now we can run the server with:
 
 ```sh
@@ -40,9 +43,6 @@ docker run -ti -p 8090:8090 -v /path/to/data:/data:ro waggle/playback-server
 Data will be available at:
 
 ```sh
-# alias for ffserver bottom mp4 stream
-ffplay http://localhost:8090/live
-
 # serves mp4 video stream
 ffplay http://localhost:8090/bottom/live.mp4
 ffplay http://localhost:8090/top/live.mp4
@@ -50,8 +50,4 @@ ffplay http://localhost:8090/top/live.mp4
 # serves sequence of images from data directory
 wget http://localhost:8090/bottom/image.jpg
 wget http://localhost:8090/top/image.jpg
-
-# serves synthetic debug images
-wget http://localhost:8090/blank.jpg
-wget http://localhost:8090/noise.jpg
 ```
